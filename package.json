@@ -1,0 +1,11 @@
+{
+  "name": "sportstat",
+  "private": true,
+  "description": "NBA, NFL and Premier League stats with explained predictions",
+  "scripts": {
+    "data": "NODE_USE_ENV_PROXY=1 node scripts/fetch-data.mjs",
+    "test": "node --test",
+    "build": "node scripts/build-single.mjs",
+    "start": "npx --yes serve ."
+  }
+}
