@@ -125,6 +125,27 @@ th{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mu
 .legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;background:var(--c)}
 .moves{display:flex;gap:6px;flex-wrap:wrap}
 
+/* photo treatment: text over photos is always white on a dark scrim, in both themes */
+.hero{position:relative;border-radius:18px;overflow:hidden;min-height:250px;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;gap:14px;padding:20px;color:#fff;background:#12161f}
+.hero>img,.ph>img,.tabs button>img,.stage>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;max-width:none}
+.hero::after,.ph::after,.tabs button::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(9,12,18,.88),rgba(9,12,18,.25) 70%,rgba(9,12,18,.1))}
+.hero>div{position:relative;z-index:1}
+.hero .muted{color:rgba(255,255,255,.82)}
+.hero .plates b{background:rgba(255,255,255,.7)}
+.ph{position:relative;height:130px;margin:-18px -18px 0;border-radius:13px 13px 0 0;overflow:hidden;background:#12161f;color:#fff}
+.ph-t{position:absolute;left:18px;right:18px;bottom:12px;z-index:1;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.ph-t h3{font-size:1.6rem}
+.ph .tag{color:#fff;border-color:rgba(255,255,255,.6);background:rgba(9,12,18,.35)}
+.tabs button{position:relative;overflow:hidden;height:76px;padding:0 4px 8px;display:flex;align-items:flex-end;justify-content:center;color:#fff;background:#12161f;border:2px solid transparent}
+.tabs button>span{position:relative;z-index:1}
+.tabs button>img{filter:grayscale(1) brightness(.75)}
+.tabs button[aria-selected="true"]{background:#12161f;color:#fff;border-color:var(--accent)}
+.tabs button[aria-selected="true"]>img{filter:none}
+.tabs button[aria-selected="true"]::after{background:linear-gradient(to top,rgba(9,12,18,.8),rgba(9,12,18,.05) 75%)}
+.stage{position:relative;overflow:hidden;color:#fff;background:#151a26;min-height:230px;justify-content:center}
+.stage>img{opacity:.34;mix-blend-mode:luminosity}
+.stage>span{position:relative;z-index:1}
+
 /* timer dock */
 .dock{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
   padding-top:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom, 0px));
@@ -152,7 +173,8 @@ th{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mu
 </style>
 
 <div class="wrap">
-  <header class="top">
+  <header class="hero">
+    <img src="img/hero.jpg" alt="">
     <div>
       <div class="plates" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b><i></i><i></i><i></i><i></i></div>
       <h1>Rackside Trainer</h1>
@@ -196,10 +218,10 @@ th{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mu
   </section>
 
   <nav class="tabs" role="tablist" aria-label="Workout type">
-    <button type="button" role="tab" data-tab="pyramid">Pyramid</button>
-    <button type="button" role="tab" data-tab="pb">PB</button>
-    <button type="button" role="tab" data-tab="5x5">5×5</button>
-    <button type="button" role="tab" data-tab="cardio">Cardio</button>
+    <button type="button" role="tab" data-tab="pyramid"><img src="img/t-pyramid.jpg" alt=""><span>Pyramid</span></button>
+    <button type="button" role="tab" data-tab="pb"><img src="img/t-pb.jpg" alt=""><span>PB</span></button>
+    <button type="button" role="tab" data-tab="5x5"><img src="img/t-5x5.jpg" alt=""><span>5×5</span></button>
+    <button type="button" role="tab" data-tab="cardio"><img src="img/t-cardio.jpg" alt=""><span>Cardio</span></button>
   </nav>
 
   <section class="panel" data-panel="pyramid">
@@ -223,6 +245,7 @@ th{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mu
       <p class="muted small">Estimate your one-rep max, ramp up to an attempt, and keep a board of your bests.</p>
     </div>
     <div class="card">
+      <div class="ph"><img src="img/pb.jpg" alt=""><div class="ph-t"><h3>One-rep max calculator</h3></div></div>
       <div class="row" style="align-items:flex-end;gap:12px">
         <label class="field" style="flex:1 1 200px"><span class="label">Lift</span><select id="pb-lift"></select></label>
         <label class="field narrow"><span class="label">Weight (<span class="u">kg</span>)</span><input type="number" id="pb-w" min="0" step="0.5" inputmode="decimal"></label>
@@ -290,6 +313,7 @@ th{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mu
       </div>
       <p class="small muted" id="c-desc"></p>
       <div class="stage" id="stage" data-phase="idle">
+        <img src="img/stage.jpg" alt="">
         <span class="phase" id="c-phase">Ready</span>
         <span class="clock" id="c-clock">0:00</span>
         <span class="move" id="c-move"></span>
@@ -312,7 +336,7 @@ th{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mu
     </div>
   </section>
 
-  <p class="small muted">Body types are a loose guide, not a diagnosis. Treat the suggestions as a starting point and adjust to how you recover. Check with a doctor before starting hard training if you have a health condition.</p>
+  <p class="small muted">Body types are a loose guide, not a diagnosis. Treat the suggestions as a starting point and adjust to how you recover. Check with a doctor before starting hard training if you have a health condition. Photos from Unsplash.</p>
 </div>
 
 <div class="dock" id="dock">
@@ -393,6 +417,7 @@ const rnd=x=>{const s=step(); return Math.max(s,Math.round(x/s)*s);};
 const fmtW=x=>(Math.round(x*10)/10)+" "+S.units;
 const mmss=s=>{s=Math.max(0,Math.ceil(s)); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");};
 const plate=p=>p>=96?"r":p>=84?"b":p>=70?"y":"g";
+const ph=(x,tag)=>`<div class="ph"><img src="img/${x.p}.jpg" alt="" loading="lazy"><div class="ph-t"><span class="tag">${tag}</span><h3>${x.name}</h3></div></div>`;
 
 /* ---------- sound ---------- */
 let AC=null;
@@ -474,8 +499,7 @@ function renderPyramid(){
   const L=ladder(), list=FOCUS[S.focus].map(pick).filter(Boolean);
   $("#pyr-list").innerHTML=list.map(x=>{
     const top=+S.tops[x.name]||0;
-    return `<article class="card"><div class="exhead">
-      <div><span class="tag">${PNAME[x.p]}</span><h3 style="margin-top:6px">${x.name}</h3></div>
+    return `<article class="card">${ph(x,PNAME[x.p])}<div class="exhead">
       ${x.load==="w"?`<label class="field narrow"><span class="label">Top set (${S.units})</span><input type="number" id="top-${x.p}" data-top="${x.name}" min="0" step="0.5" inputmode="decimal" value="${top||""}" placeholder="e.g. ${S.units==="kg"?40:90}"></label>`
         :`<span class="small muted">${x.load==="b"?"Step up band tension":"Bodyweight. Make it harder with tempo"}</span>`}
       </div><div class="sets">${L.map((s,i)=>setRow(x.name,i,s,top,x.load)).join("")}</div></article>`;
@@ -534,8 +558,7 @@ function renderFive(){
     :"5×5 works best with loaded lifts. With your current kit, use a slow 3-second lowering phase and add a rep target instead of weight.";
   $("#five-list").innerHTML=L.map(x=>{
     const w=+S.five[x.name]||0;
-    return `<article class="card"><div class="exhead">
-      <div><span class="tag">${x.sets} × 5</span><h3 style="margin-top:6px">${x.name}</h3></div>
+    return `<article class="card">${ph(x,x.sets+" × 5")}<div class="exhead">
       ${x.load==="w"?`<label class="field narrow"><span class="label">Weight (${S.units})</span><input type="number" id="five-${x.p}" data-five="${x.name}" min="0" step="0.5" inputmode="decimal" value="${w||""}" placeholder="e.g. ${S.units==="kg"?40:90}"></label>`
         :`<span class="small muted">${x.load==="b"?"Use your heaviest band":"Bodyweight, slow tempo"}</span>`}</div>
       <div class="reps">${Array.from({length:x.sets},(_,i)=>`<button type="button" class="rep" data-k="${x.name}|${i}" aria-pressed="${!!done5[x.name+"|"+i]}" aria-label="Set ${i+1} of ${x.name}">5</button>`).join("")}</div></article>`;
