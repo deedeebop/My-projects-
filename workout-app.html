@@ -362,6 +362,7 @@ th{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mu
       <div class="row" style="gap:18px">
         <label class="check"><input type="checkbox" id="t-auto"> Start when I tick a set</label>
         <label class="check"><input type="checkbox" id="t-sound"> Beep at zero</label>
+        <label class="check"><input type="checkbox" id="t-voice"> Voice call-outs</label>
       </div>
     </div>
   </div>
@@ -373,7 +374,7 @@ th{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mu
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const KEY="rackside-v1";
 const def={units:"kg",body:"meso",equip:["dumbbells","bench","bands"],focus:"full",bw:75,tab:"pyramid",pstyle:"tri",
-  tops:{},pbs:[],five:{},ab:"A",rest:90,auto:true,sound:true,proto:"hiit",clen:"20"};
+  tops:{},pbs:[],five:{},ab:"A",rest:90,auto:true,sound:true,voice:true,proto:"hiit",clen:"20"};
 let S=Object.assign({},def);
 try{const raw=localStorage.getItem(KEY); if(raw) S=Object.assign(S,JSON.parse(raw));}catch(e){}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
@@ -425,6 +426,9 @@ const armAudio=()=>{try{AC=AC||new (window.AudioContext||window.webkitAudioConte
 function beep(freq,dur,when){ if(!S.sound||!AC) return; try{const o=AC.createOscillator(),g=AC.createGain(); o.frequency.value=freq; o.connect(g); g.connect(AC.destination);
   const t=AC.currentTime+(when||0); g.gain.setValueAtTime(.001,t); g.gain.exponentialRampToValueAtTime(.3,t+.02); g.gain.exponentialRampToValueAtTime(.001,t+dur); o.start(t); o.stop(t+dur+.02);}catch(e){} }
 const buzz=p=>{try{navigator.vibrate&&navigator.vibrate(p);}catch(e){}};
+function say(t){ if(!S.voice||!t||!("speechSynthesis" in window)) return; try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.rate=1.05; speechSynthesis.speak(u);}catch(e){} }
+const spoken=s=>{s=Math.round(s); const m=Math.floor(s/60),r=s%60; return (m?m+(m===1?" minute":" minutes"):"")+(m&&r?" ":"")+(r||!m?r+" seconds":"");};
+const unitWord=()=>S.units==="kg"?"kilos":"pounds";
 let wake=null;
 async function keepAwake(on){try{ if(on&&!wake&&navigator.wakeLock){wake=await navigator.wakeLock.request("screen"); wake.addEventListener("release",()=>wake=null);} if(!on&&wake){wake.release(); wake=null;} }catch(e){}}
 
@@ -436,7 +440,7 @@ function tRender(){
   $("#t-go").textContent=T.running?"Pause":"Start";
   $("#dock").classList.toggle("done",T.done);
   $("#t-min").value=Math.floor(S.rest/60); $("#t-sec").value=S.rest%60;
-  $("#t-auto").checked=S.auto; $("#t-sound").checked=S.sound;
+  $("#t-auto").checked=S.auto; $("#t-sound").checked=S.sound; $("#t-voice").checked=S.voice;
   const sug=suggested();
   $("#t-presets").innerHTML=[30,60,90,120,180].map(v=>`<button type="button" class="chip" data-s="${v}" aria-pressed="${S.rest===v}">${mmss(v)}</button>`).join("")+
     `<button type="button" class="chip" data-s="${sug}">Suggested ${mmss(sug)}</button>`;
@@ -446,8 +450,9 @@ function tStart(){ if(T.left<=0) T.left=S.rest; T.end=Date.now()+T.left*1000; T.
 function tPause(){ T.running=false; tRender(); }
 function tReset(){ T.running=false; T.done=false; T.left=S.rest; tRender(); }
 function tSet(sec){ S.rest=Math.max(5,Math.min(3599,Math.round(sec))); save(); tReset(); }
-function restAfterSet(){ if(!S.auto) return; armAudio(); T.left=S.rest; tStart(); }
+function restAfterSet(next){ T.next=next||""; if(!S.auto){ say(next); return; } armAudio(); T.left=S.rest; tStart(); say("Rest, "+spoken(S.rest)); }
 $("#t-go").onclick=()=>{armAudio(); T.running?tPause():tStart();};
+$("#t-reset").addEventListener("click",()=>{T.next="";});
 $("#t-reset").onclick=tReset;
 $("#t-plus").onclick=()=>{T.left+=15; if(T.running) T.end+=15000; T.done=false; tRender();};
 $("#t-minus").onclick=()=>{T.left=Math.max(0,T.left-15); if(T.running) T.end-=15000; tRender();};
@@ -456,6 +461,7 @@ $("#t-presets").onclick=e=>{const b=e.target.closest("[data-s]"); if(b) tSet(+b.
 $("#t-apply").onclick=()=>tSet((+$("#t-min").value||0)*60+(+$("#t-sec").value||0));
 $("#t-auto").onchange=e=>{S.auto=e.target.checked; save();};
 $("#t-sound").onchange=e=>{S.sound=e.target.checked; save(); armAudio();};
+$("#t-voice").onchange=e=>{S.voice=e.target.checked; save(); if(S.voice) say("Voice call-outs on"); else { try{speechSynthesis.cancel();}catch(x){} } };
 
 /* ---------- setup ---------- */
 function segBind(id,key,after){ $("#"+id).onclick=e=>{const b=e.target.closest("button"); if(!b) return; S[key]=b.dataset.v; save(); after&&after(); renderAll();}; }
@@ -506,7 +512,7 @@ function renderPyramid(){
   }).join("");
 }
 $("#pyr-list").addEventListener("change",e=>{const n=e.target.dataset.top; if(!n) return; S.tops[n]=+e.target.value||0; save(); renderPyramid();});
-$("#pyr-list").addEventListener("click",e=>{const b=e.target.closest(".set"); if(!b) return; const k=b.dataset.k; doneP[k]=!doneP[k]; b.setAttribute("aria-pressed",String(doneP[k])); if(doneP[k]) restAfterSet();});
+$("#pyr-list").addEventListener("click",e=>{const b=e.target.closest(".set"); if(!b) return; const k=b.dataset.k; doneP[k]=!doneP[k]; b.setAttribute("aria-pressed",String(doneP[k])); if(doneP[k]) restAfterSet(nextPyr());});
 
 /* ---------- PB ---------- */
 const RAMP=[[40,5],[55,3],[70,2],[80,1],[90,1],[100,1]];
@@ -539,7 +545,7 @@ function renderPB(){
 ["pb-w","pb-r"].forEach(id=>$("#"+id).addEventListener("input",()=>{pbTouched=true; delete $("#pb-target").dataset.user; $("#pb-msg").textContent=""; renderPB();}));
 $("#pb-lift").onchange=()=>{delete $("#pb-target").dataset.user; doneR={}; $("#pb-msg").textContent=""; renderPB();};
 $("#pb-target").addEventListener("change",e=>{e.target.dataset.user="1"; doneR={}; renderPB();});
-$("#pb-ramp").onclick=e=>{const b=e.target.closest(".set"); if(!b) return; const k=b.dataset.k; doneR[k]=!doneR[k]; b.setAttribute("aria-pressed",String(doneR[k])); if(doneR[k]&&+k<RAMP.length-1) restAfterSet();};
+$("#pb-ramp").onclick=e=>{const b=e.target.closest(".set"); if(!b) return; const k=b.dataset.k; doneR[k]=!doneR[k]; b.setAttribute("aria-pressed",String(doneR[k])); if(doneR[k]&&+k<RAMP.length-1) restAfterSet(nextRamp());};
 $("#pb-save").onclick=()=>{
   const lift=$("#pb-lift").value, w=+$("#pb-w").value||0, r=Math.max(1,+$("#pb-r").value||1), score=w>0?e1rm(w,r):r, best=bestFor(lift);
   if(best&&best.score>=score){ $("#pb-msg").textContent=`Not a new best. Your ${lift} record still stands.`; return; }
@@ -565,7 +571,7 @@ function renderFive(){
   }).join("");
 }
 $("#five-list").addEventListener("change",e=>{const n=e.target.dataset.five; if(!n) return; S.five[n]=+e.target.value||0; save();});
-$("#five-list").addEventListener("click",e=>{const b=e.target.closest(".rep"); if(!b) return; const k=b.dataset.k; done5[k]=!done5[k]; b.setAttribute("aria-pressed",String(done5[k])); if(done5[k]) restAfterSet();});
+$("#five-list").addEventListener("click",e=>{const b=e.target.closest(".rep"); if(!b) return; const k=b.dataset.k; done5[k]=!done5[k]; b.setAttribute("aria-pressed",String(done5[k])); if(done5[k]) restAfterSet(nextFive());});
 $("#five-finish").onclick=()=>{
   const up=[]; fiveLifts().forEach(x=>{ let all=true; for(let i=0;i<x.sets;i++) if(!done5[x.name+"|"+i]) all=false;
     if(all&&x.load==="w"&&S.five[x.name]){ S.five[x.name]=+S.five[x.name]+step(); up.push(x.name); } });
@@ -614,23 +620,35 @@ function cPaint(){
   $("#c-go").textContent=C.running?"Pause":C.finished?"Go again":"Start";
 }
 function cAdvance(){
-  if(C.idx>=C.segs.length-1){ C.running=false; C.finished=true; beep(660,.2); beep(880,.2,.22); beep(1175,.4,.44); buzz([200,80,200,80,400]); keepAwake(T.running); renderCardio(); return; }
+  if(C.idx>=C.segs.length-1){ C.running=false; C.finished=true; say("Session complete. Good work."); beep(660,.2); beep(880,.2,.22); beep(1175,.4,.44); buzz([200,80,200,80,400]); keepAwake(T.running); renderCardio(); return; }
   C.idx++; C.left=C.segs[C.idx].s; C.end=Date.now()+C.left*1000;
   const w=C.segs[C.idx].t==="work"; beep(w?1046:523,.35); buzz(w?[250]:[90,60,90]); renderCardio();
+  const sg=C.segs[C.idx], nx=C.segs.slice(C.idx+1).find(x=>x.t==="work");
+  say(sg.t==="work"?`Go! ${sg.name}, ${spoken(sg.s)}`:sg.t==="rest"?"Recover."+(nx?` Next, ${nx.name}`:""):"Cool down. Walk it off.");
 }
 $("#c-go").onclick=()=>{ armAudio();
   if(C.finished){ cReset(); renderCardio(); }
-  if(C.running){ C.running=false; } else { C.end=Date.now()+C.left*1000; C.running=true; keepAwake(true); }
+  if(C.running){ C.running=false; } else { if(C.idx===0&&C.left>=C.segs[0].s){ const f=C.segs.find(x=>x.t==="work"); say("Warm up. Easy pace for one minute."+(f?` First up, ${f.name}`:"")); }
+    C.end=Date.now()+C.left*1000; C.running=true; keepAwake(true); }
   cPaint(); };
 $("#c-skip").onclick=()=>{ if(C.finished) return; armAudio(); cAdvance(); cPaint(); };
 $("#c-reset").onclick=()=>{ cReset(); renderCardio(); };
 
+/* ---------- voice: what comes next ---------- */
+function nextPyr(){ const L=ladder(); for(const x of FOCUS[S.focus].map(pick).filter(Boolean)) for(let i=0;i<L.length;i++) if(!doneP[x.name+"|"+i]){ const top=+S.tops[x.name]||0, s=L[i];
+  return `Next: ${x.name}, set ${i+1}, ${s.reps} reps`+(x.load==="w"&&top?` at ${rnd(top*s.pct/100)} ${unitWord()}`:""); } return "That was the last set. Workout complete."; }
+function nextFive(){ for(const x of fiveLifts()) for(let i=0;i<x.sets;i++) if(!done5[x.name+"|"+i]){ const w=+S.five[x.name]||0;
+  return `Next: ${x.name}, set ${i+1} of ${x.sets}, 5 reps`+(x.load==="w"&&w?` at ${w} ${unitWord()}`:""); } return "All sets done. Press finish session."; }
+function nextRamp(){ const tgt=+$("#pb-target").value||0; for(let i=0;i<RAMP.length;i++) if(!doneR[i]){ const p=RAMP[i][0], r=RAMP[i][1];
+  return p===100?`Next: your attempt. ${tgt} ${unitWord()}, one rep. Make it count.`:`Next: ${r} ${r===1?"rep":"reps"} at ${rnd(tgt*p/100)} ${unitWord()}`; } return ""; }
+
 /* ---------- tick ---------- */
-let lastC=-1;
+let lastC=-1,lastT=-1;
 setInterval(()=>{
   const now=Date.now();
   if(T.running){ T.left=Math.max(0,(T.end-now)/1000);
-    if(T.left<=0){ T.running=false; T.done=true; T.left=0; beep(880,.18); beep(880,.18,.25); beep(1320,.4,.5); buzz([200,100,200,100,400]); if(!C.running) keepAwake(false); }
+    const ts=Math.ceil(T.left); if(ts!==lastT){ lastT=ts; if(ts===10&&S.rest>=30) say("Ten seconds"); }
+    if(T.left<=0){ T.running=false; T.done=true; T.left=0; say("Rest over. "+(T.next||"Go.")); beep(880,.18); beep(880,.18,.25); beep(1320,.4,.5); buzz([200,100,200,100,400]); if(!C.running) keepAwake(false); }
     tRender(); }
   if(C.running){ C.left=Math.max(0,(C.end-now)/1000); const sec=Math.ceil(C.left);
     if(sec!==lastC){ lastC=sec; if(sec>0&&sec<=3) beep(700,.08); }
